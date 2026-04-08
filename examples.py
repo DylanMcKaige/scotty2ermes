@@ -4,7 +4,7 @@ Below are 5 examples of how to use scotty2ERMES and its functions
 Refer to main.py for references and notes
 Written by Dylan James Mc Kaige
 Created: 1/4/2026
-Updated: 1/4/2026
+Updated: 8/4/2026
 """
 import os, datatree
 from src.scotty2ERMES import get_ERMES_parameters, ERMES_results_to_plots
