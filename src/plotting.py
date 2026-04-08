@@ -8,9 +8,10 @@ TODO
 Refer to main.py for references and notes
 Written by Dylan James Mc Kaige
 Created: 1/4/2026
-Updated: 1/4/2026
+Updated: 8/4/2026
 """
 import numpy as np
+import datatree
 from tqdm import tqdm
 from scipy.spatial import cKDTree
 from matplotlib import pyplot as plt
@@ -18,7 +19,7 @@ from matplotlib.widgets import Slider
 from matplotlib.colors import Normalize, LinearSegmentedColormap
 from matplotlib import colormaps as cm
 from scotty.analysis import beam_width
-from scotty.plotting import plot_poloidal_crosssection, plot_toroidal_beam_path
+from scotty.plotting import plot_poloidal_crosssection
 from func_general import RtZ_to_XYZ, XYZ_to_RtZ, handle_scotty_launch_angle_sign, gaussian_fit
 from analysis import calc_Eb_from_scotty
 
@@ -747,6 +748,10 @@ def plot_3D_width_var_covar(
 
     plt.show()
 
+#TODO 
+# FIX THIS (Or just deprecate as it's not needed nor too informative near the cutoff. 
+# It was really more for bug fixing when I initially couldn't
+# get the correct polariztion vector for 100% X or 100% O-mode)
 def plot_flux(distance_along_beam, poynting_flux_per_tau, tau_cutoff, prefix, save):
     """
     Poynting flux S dot g integrated across beamfront vs distance.
@@ -762,3 +767,139 @@ def plot_flux(distance_along_beam, poynting_flux_per_tau, tau_cutoff, prefix, sa
     if save:
         plt.savefig(f"{prefix}_poynting_flux.png", dpi=200)
     plt.show()
+
+def plot_transverse_profiles_from_h5(dt: datatree, save: bool = False):
+    """
+    Load a saved analysis .h5 file, unflatten the transverse profiles,
+    and display an interactive slider plot identical in style to
+    plot_transverse_profiles_2D / plot_transverse_profiles_3D.
+
+    Args:
+        dt (datatree): Analysis.h5 file produced by scotty2ERMES.
+        save (bool): Whether to save the figure as a PNG.
+        
+    Returns:
+        Plots!
+    """
+    prefix = str(dt)
+    distance_along_line = dt["distance_along_line"].values
+
+    def unflatten(flat_key, indptr_key):
+        """
+        Reconstruct list-of-arrays from flat + indptr stored in ds.
+        """
+        flat = dt[flat_key].values
+        indptr = dt[indptr_key].values.astype(int)
+        return [flat[indptr[i]:indptr[i + 1]] for i in range(len(indptr) - 1)]
+
+    # 2D
+    if "offsets_transverse_flat" in dt:
+        offsets = unflatten("offsets_transverse_flat", "tau_index_pointer")
+        modE = unflatten("modE_transverse_flat",    "tau_index_pointer")
+        theory = (unflatten("modE_transverse_theory_flat", "tau_index_pointer") if "modE_transverse_theory_flat" in dt else None)
+        fit_params = dt["fit_params"].values # (N, p)
+
+        N = len(offsets)
+        global_maxE = np.nanmax([np.nanmax(p) for p in modE])
+        if theory is not None:
+            global_maxE = max(global_maxE, np.nanmax([np.nanmax(p) for p in theory]))
+        global_max_offset = np.nanmax([np.nanmax(np.abs(o)) for o in offsets])
+
+        fig, ax = plt.subplots(figsize=(6, 4))
+        plt.subplots_adjust(bottom=0.25)
+
+        x0, y0 = offsets[0], modE[0]
+        scatter = ax.scatter(x0, y0, color='red', s=15, label='ERMES samples')
+        line_fit, = ax.plot(x0, gaussian_fit(x0, *fit_params[0]), color='green', lw=3, label='Gaussian fit')
+        line_theory = (ax.plot(x0, theory[0], '--', color='orange', label='SCOTTY')[0] if theory is not None else None)
+
+        ax.set_xlabel('Offset from beam center (m)')
+        ax.set_ylabel('|E| (A.U.)')
+        ax.set_title(f"Transverse |E| profile at {distance_along_line[0]:.3f}m along the central ray")
+        ax.legend()
+        ax.set_xlim(-global_max_offset, global_max_offset)
+        ax.set_ylim(0, 1.1 * global_maxE)
+
+        ax_slider = plt.axes([0.2, 0.1, 0.6, 0.03])
+        slider = Slider(ax_slider, '', float(distance_along_line[0]), float(distance_along_line[-1]),
+                        valinit=float(distance_along_line[0]))
+
+        def update_2d(val):
+            j = int(np.argmin(np.abs(distance_along_line - slider.val)))
+            x, y = offsets[j], modE[j]
+            scatter.set_offsets(np.column_stack([x, y]))
+            line_fit.set_data(x, gaussian_fit(x, *fit_params[j]))
+            if line_theory is not None:
+                line_theory.set_data(x, theory[j])
+            ax.set_title(f"Transverse |E| profile at {distance_along_line[j]:.3f}m along the central ray")
+            fig.canvas.draw_idle()
+
+        slider.on_changed(update_2d)
+        if save:
+            plt.savefig(f"{prefix}_transverse_profile.png", dpi=200)
+        plt.show()
+
+    # 3D
+    elif "offsets_xhat_flat" in dt:
+        offsets_x = unflatten("offsets_xhat_flat", "tau_index_pointer_x")
+        modE_x = unflatten("modE_xhat_flat",    "tau_index_pointer_x")
+        theory_x = (unflatten("modE_xhat_theory_flat", "tau_index_pointer_x") if "modE_xhat_theory_flat" in dt else None)
+
+        offsets_y = unflatten("offsets_yhat_flat", "tau_index_pointer_y")
+        modE_y = unflatten("modE_yhat_flat",    "tau_index_pointer_y")
+        theory_y = (unflatten("modE_yhat_theory_flat", "tau_index_pointer_y") if "modE_yhat_theory_flat" in dt else None)
+
+        fit_params_x = dt["fit_params_x_hat"].values # (N, p)
+        fit_params_y = dt["fit_params_y_hat"].values
+
+        global_maxE = np.nanmax([np.nanmax(np.abs(p)) for p in modE_x])
+        global_max_offset = np.nanmax([np.nanmax(np.abs(o)) for o in offsets_x])
+
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7, 7), sharex=True)
+        plt.subplots_adjust(bottom=0.2, hspace=0.3)
+
+        x0 = offsets_x[0]
+        scatter_x = ax1.scatter(x0, modE_x[0], color='red', s=15, label=r'ERMES samples $(\hat{x})$')
+        scatter_y = ax2.scatter(x0, modE_y[0], color='red', s=15, label=r'ERMES samples $(\hat{y})$')
+        line_fit_x, = ax1.plot(x0, gaussian_fit(x0, *fit_params_x[0]), color='green', lw=2, label='Gaussian fit')
+        line_fit_y, = ax2.plot(x0, gaussian_fit(x0, *fit_params_y[0]), color='green', lw=2, label='Gaussian fit')
+        line_theory_x = (ax1.plot(x0, theory_x[0], '--', color='orange', lw=2, label='SCOTTY')[0] if theory_x is not None else None)
+        line_theory_y = (ax2.plot(x0, theory_y[0], '--', color='orange', lw=2, label='SCOTTY')[0] if theory_y is not None else None)
+
+        for ax, label in zip([ax1, ax2], [r"$\hat{x}$ direction", r"$\hat{y}$ direction"]):
+            ax.set_xlim(-global_max_offset, global_max_offset)
+            ax.set_ylim(0, 1.1 * global_maxE)
+            ax.set_ylabel('|E| (A.U.)')
+            ax.legend()
+            ax.grid(True)
+        ax2.set_xlabel('Offset from beam center (m)')
+        ax1.set_title(f'Transverse |E| profiles at {distance_along_line[0]:.3f}m along the central ray')
+
+        ax_slider = plt.axes([0.2, 0.05, 0.6, 0.03])
+        slider = Slider(ax_slider, '', float(distance_along_line[0]), float(distance_along_line[-1]), valinit=float(distance_along_line[0]))
+
+        def update_3d(val):
+            j = int(np.argmin(np.abs(distance_along_line - slider.val)))
+
+            x, yx = offsets_x[j], modE_x[j]
+            scatter_x.set_offsets(np.column_stack([x, yx]))
+            line_fit_x.set_data(x, gaussian_fit(x, *fit_params_x[j]))
+            if line_theory_x is not None:
+                line_theory_x.set_data(x, theory_x[j])
+
+            y, yy = offsets_y[j], modE_y[j]
+            scatter_y.set_offsets(np.column_stack([y, yy]))
+            line_fit_y.set_data(y, gaussian_fit(y, *fit_params_y[j]))
+            if line_theory_y is not None:
+                line_theory_y.set_data(y, theory_y[j])
+
+            ax1.set_title(f"Transverse |E| profiles at {distance_along_line[j]:.3f}m along the central ray")
+            fig.canvas.draw_idle()
+
+        slider.on_changed(update_3d)
+        if save:
+            fig.savefig(f"{prefix}_transverse_profiles_3D.png", dpi=250, bbox_inches='tight')
+        plt.show()
+
+    else:
+        raise ValueError("Unrecognised .h5 format: expected 'offsets_transverse_flat' or 'offsets_xhat_flat'.")
