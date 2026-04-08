@@ -4,7 +4,7 @@ Functions related to loading and handling data, either from SCOTTY or ERMES
 Refer to main.py for references and notes
 Written by Dylan James Mc Kaige
 Created: 1/4/2026
-Updated: 1/4/2026
+Updated: 8/4/2026
 """
 import os, datatree
 import numpy as np
@@ -716,5 +716,3 @@ def exact_to_ERMES(reference_data, exact_data: str, tol: float):
         (node_to_xyz_exact, rE_array_exact.reshape(-1,1))
     )
     return modE_xyz, rE_xyz
-
-#TODO function that unflattens the transverse profiles form the saved .h5 file
