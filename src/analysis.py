@@ -4,7 +4,7 @@ Functions related to analysis
 Refer to main.py for references and notes
 Written by Dylan James Mc Kaige
 Created: 1/4/2026
-Updated: 1/4/2026
+Updated: 4/4/2026
 """
 import datatree
 import numpy as np
@@ -27,7 +27,7 @@ def calc_Eb_from_scotty(dt: datatree, E0: float = 1.0, cartesian_scotty: bool = 
         Eb_tau (array): |Eb| at all the points along the ray w.r.t tau
     """
     # Naming convention, end in tau means index in terms of tau, RtZ means in RtZ basis, xyg means in xyg basis, neither means it is an element (likely), 
-    # w means in plane perp to g, g means projected onto g
+    # w means in plane perp to g (spans xhat and yhat in beam frame), g means projected onto g
     # i means im component, launch and ant are equiv
     tau_len = len(dt.analysis.Psi_xx.values)
     
@@ -85,7 +85,7 @@ def calc_Eb_from_scotty(dt: datatree, E0: float = 1.0, cartesian_scotty: bool = 
             M_proj = np.einsum('nij,njk,nlk->nil', P, mat, P)
         return M_proj
     
-    # Create Psi_w from Psi_xx,xy,yy. Alternatively, project Psi_3D onto w. TODO Check if these are equal
+    # Create Psi_w from Psi_xx,xy,yy. Alternatively, project Psi_3D onto w.
     Psi_w_xyg = np.zeros((tau_len, 3, 3), dtype=np.complex64) # Such that Psi_w_xyg_tau(N) is the Nth Psi_w corresponding to the Nth tau in xyg basis
     Psi_w_xyg[:, 0, 0] = Psi_xx
     Psi_w_xyg[:, 0, 1] = Psi_xy
@@ -143,13 +143,13 @@ def compute_torsion(dt: datatree = None):
     mask = kappa > eps
     N[mask] = dg_ds[mask] / kappa[mask, None]
     
-    # Binormal vector B = g_hat × N
+    # Binormal vector B = g_hat x N
     B = np.cross(g_hat_XYZ_norm, N)
     
     # Derivative of B wrt s
     dB_ds = np.gradient(B, s, axis=0)
 
-    # Torsion τ = - (dB/ds · N)
+    # Torsion τ = - (dB/ds dot N)
     tau = -np.einsum('ij,ij->i', dB_ds, N)
     
     return tau
@@ -198,6 +198,9 @@ def get_relative_error(observed_data, actual_data):
     Args:
         observed_data (array like): Observed/ Experimental Data
         actual_data (array like): Actual/ Theoretical Data
+        
+    Returns:
+        err (array like): Relative error
     """
     observed_data = np.asarray(observed_data)
     actual_data = np.asarray(actual_data)
@@ -210,11 +213,14 @@ def get_relative_error(observed_data, actual_data):
 
 def get_moving_RMS(observed_data, window_size: int):
     """
-    Get the moving RMS of a dataset, used for smaller angles as the data becomes oscillatory.
+    Get the moving RMS of a dataset, use for smaller angles as the data becomes oscillatory.
 
     Args:
         observed_data (array like): The observed data
         window_size (float): The size of the RMS window
+        
+    Returns:
+        smoothed_data (array like): Smoothed RMS data of the observed_data. Smoothing done within a window of window_size.
     """
     
     observed_data = np.asarray(observed_data)
@@ -320,9 +326,10 @@ def offset_point_along_plane_normal(point_on_plane, plane_normal, dz):
     new_point = point_on_plane + dz * n_hat
     return np.array(new_point)
 
+# TODO Consider deprecating this as it is quite non-physical.
 def pure_best_fit_plane(beam_xyz):
     """
-    This version doesnt care about an anchor k or anchor point. Purely best fit
+    This version doesnt care about an anchor k or anchor point. Purely best fit.
     Args:
         beam_xyz: Beam coords in ERMES Cartesian
     Returns:
