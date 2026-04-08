@@ -7,7 +7,7 @@ Created: 1/4/2026
 Updated: 1/4/2026
 """
 import os, datatree
-from scotty2ERMES_main.scotty2ERMES import get_ERMES_parameters, ERMES_results_to_plots
+from src.scotty2ERMES import get_ERMES_parameters, ERMES_results_to_plots
 from load_handle import load_scotty_data, ERMES_nodes_to_XYZ, ERMES_to_array, ERMES_results_to_node
 from analysis import calc_Eb_from_scotty, pure_best_fit_plane, project_point_onto_plane, offset_point_along_plane_normal
 from plotting import plot_3D_widths
