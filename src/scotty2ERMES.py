@@ -38,7 +38,7 @@ I simply unfortunately started with this and stuck with it, the only difference 
 
 Written by Dylan James Mc Kaige
 Created: 16/4/2025 (In general. The reorganization was done on 1/4/2026)
-Updated: 1/4/2026
+Updated: 8/4/2026
 """
 import datatree, os
 import numpy as np
@@ -744,6 +744,8 @@ def ERMES_results_to_plots(
             prefix=prefix
         )
     
+    
+    #TODO Deprecate?
     if "flux" in plot_blocks:
         plot_flux(
             distance_along_beam=distance_along_beam,
