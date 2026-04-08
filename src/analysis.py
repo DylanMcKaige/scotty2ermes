@@ -4,7 +4,7 @@ Functions related to analysis
 Refer to main.py for references and notes
 Written by Dylan James Mc Kaige
 Created: 1/4/2026
-Updated: 4/4/2026
+Updated: 8/4/2026
 """
 import datatree
 import numpy as np
