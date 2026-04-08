@@ -4,7 +4,7 @@ General and generic QOL functions
 Refer to main.py for references and notes
 Written by Dylan James Mc Kaige
 Created: 1/4/2026
-Updated: 1/4/2026
+Updated: 8/4/2026
 """
 
 import numpy as np
@@ -13,7 +13,7 @@ import datatree
 def handle_scotty_launch_angle_sign(dt: datatree):
     """
     Because I keep messing up the sign conventions. Also returns it as an acute angle. 
-    + Above the horizontal, - Below the horizontal (pointing into the plasma from the right)
+    + Above the horizontal, - Below the horizontal (pointing into the plasma from the right, i.e. LFS launch)
 
     Args:
         dt (datatree): Scotty output file
