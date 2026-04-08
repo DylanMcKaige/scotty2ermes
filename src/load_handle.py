@@ -77,7 +77,7 @@ def scotty_pol_to_ERMES(dt: datatree, E0: float, cartesian_scotty = False):
     
     return E_par, E_perp, rho_hat
     
-def get_limits_from_scotty(dt: datatree, padding_R: float = 0.03, padding_Z: float = 0.01, padding_t: float = 0.01, cartesian_scotty: bool = False):
+def get_limits_from_scotty(dt: datatree, padding_R: float = 0.1, padding_Z: float = 0.1, padding_t: float = 0.1, cartesian_scotty: bool = False):
     """
     Get the min and max R t Z from Scotty in ERMES cartesian basis by adding padding to tor and pol width
 
@@ -287,6 +287,10 @@ def ERMES_to_array(node_to_xyz, result_dict):
     """
     Helper function to go from a Dict of results to an array of results where the 0 axis is the node ID, the 1 axis goes "x", "y", "z", "value"
     where "value" could be scalar or "value-x", "value-y", "value-z"
+    
+    Args:
+        node_to_xyz (array like): Array of node xyz coordinates with nodeID as the 0 axis, from ERMES_nodes_to_xyz()
+        result_dict (dict): Dictionary of results, from ERMES_results_to_node
     """        
     max_node = max(result_dict.keys())
     print(type(list(result_dict.values())[0]))
@@ -659,7 +663,8 @@ def build_transverse_profiles_and_fits(dt, beam_xyz, modE_xyz, vecS_xyz, modE_li
         np.array(modE_theoretical_profiles_y, dtype=object)
     )
 
-def exact_to_ERMES(reference_data, exact_data: str, tol: float):
+# TODO Consider deprecating as it's honestly easier NOT to do this conversion.
+def exact_to_ERMES(reference_data, exact_data: str, tol: float): 
     """
     Convert a .npz field map of the exact |E| results to a format that can be processed by the analysis functions.
 
@@ -711,3 +716,5 @@ def exact_to_ERMES(reference_data, exact_data: str, tol: float):
         (node_to_xyz_exact, rE_array_exact.reshape(-1,1))
     )
     return modE_xyz, rE_xyz
+
+#TODO function that unflattens the transverse profiles form the saved .h5 file
