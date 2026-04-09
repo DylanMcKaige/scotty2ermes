@@ -768,15 +768,19 @@ def plot_flux(distance_along_beam, poynting_flux_per_tau, tau_cutoff, prefix, sa
         plt.savefig(f"{prefix}_poynting_flux.png", dpi=200)
     plt.show()
 
-def plot_transverse_profiles_from_h5(dt: datatree, save: bool = False):
+def plot_transverse_profiles_from_h5(dt: datatree, save: bool = False, pos: float = None):
     """
     Load a saved analysis .h5 file, unflatten the transverse profiles,
     and display an interactive slider plot identical in style to
     plot_transverse_profiles_2D / plot_transverse_profiles_3D.
+    
+    If pos is given, a specific distance_along_line = pos will be plotted.
+    If pos is None, there will be a slider.
 
     Args:
-        dt (datatree): Analysis.h5 file produced by scotty2ERMES.
+        h5_path (str): Path to the _analysis.h5 file produced by scotty2ERMES.
         save (bool): Whether to save the figure as a PNG.
+        pos (float): Position along central line for plotting specific snapshots
         
     Returns:
         Plots!
@@ -792,6 +796,12 @@ def plot_transverse_profiles_from_h5(dt: datatree, save: bool = False):
         indptr = dt[indptr_key].values.astype(int)
         return [flat[indptr[i]:indptr[i + 1]] for i in range(len(indptr) - 1)]
 
+    def nearest_index(pos):
+        return int(np.argmin(np.abs(distance_along_line - pos)))
+
+    use_slider = pos is None
+    i0 = 0 if use_slider else nearest_index(pos)
+    
     # 2D
     if "offsets_transverse_flat" in dt:
         offsets = unflatten("offsets_transverse_flat", "tau_index_pointer")
@@ -806,35 +816,36 @@ def plot_transverse_profiles_from_h5(dt: datatree, save: bool = False):
         global_max_offset = np.nanmax([np.nanmax(np.abs(o)) for o in offsets])
 
         fig, ax = plt.subplots(figsize=(6, 4))
-        plt.subplots_adjust(bottom=0.25)
+        if use_slider:
+            plt.subplots_adjust(bottom=0.25)
 
-        x0, y0 = offsets[0], modE[0]
+        x0, y0 = offsets[i0], modE[i0]
         scatter = ax.scatter(x0, y0, color='red', s=15, label='ERMES samples')
-        line_fit, = ax.plot(x0, gaussian_fit(x0, *fit_params[0]), color='green', lw=3, label='Gaussian fit')
-        line_theory = (ax.plot(x0, theory[0], '--', color='orange', label='SCOTTY')[0] if theory is not None else None)
+        line_fit, = ax.plot(x0, gaussian_fit(x0, *fit_params[i0]), color='green', lw=3, label='Gaussian fit')
+        line_theory = (ax.plot(x0, theory[i0], '--', color='orange', label='SCOTTY')[0] if theory is not None else None)
 
         ax.set_xlabel('Offset from beam center (m)')
         ax.set_ylabel('|E| (A.U.)')
-        ax.set_title(f"Transverse |E| profile at {distance_along_line[0]:.3f}m along the central ray")
+        ax.set_title(f"Transverse |E| profile at {distance_along_line[i0]:.3f}m along the central ray")
         ax.legend()
         ax.set_xlim(-global_max_offset, global_max_offset)
         ax.set_ylim(0, 1.1 * global_maxE)
 
-        ax_slider = plt.axes([0.2, 0.1, 0.6, 0.03])
-        slider = Slider(ax_slider, '', float(distance_along_line[0]), float(distance_along_line[-1]),
-                        valinit=float(distance_along_line[0]))
+        if use_slider:
+            ax_slider = plt.axes([0.2, 0.1, 0.6, 0.03])
+            slider = Slider(ax_slider, '', float(distance_along_line[0]), float(distance_along_line[-1]), valinit=float(distance_along_line[0]))
 
-        def update_2d(val):
-            j = int(np.argmin(np.abs(distance_along_line - slider.val)))
-            x, y = offsets[j], modE[j]
-            scatter.set_offsets(np.column_stack([x, y]))
-            line_fit.set_data(x, gaussian_fit(x, *fit_params[j]))
-            if line_theory is not None:
-                line_theory.set_data(x, theory[j])
-            ax.set_title(f"Transverse |E| profile at {distance_along_line[j]:.3f}m along the central ray")
-            fig.canvas.draw_idle()
+            def update_2d(val):
+                j = nearest_index(slider.val)
+                x, y = offsets[j], modE[j]
+                scatter.set_offsets(np.column_stack([x, y]))
+                line_fit.set_data(x, gaussian_fit(x, *fit_params[j]))
+                if line_theory is not None:
+                    line_theory.set_data(x, theory[j])
+                ax.set_title(f"Transverse |E| profile at {distance_along_line[j]:.3f}m along the central ray")
+                fig.canvas.draw_idle()
 
-        slider.on_changed(update_2d)
+            slider.on_changed(update_2d)
         if save:
             plt.savefig(f"{prefix}_transverse_profile.png", dpi=200)
         plt.show()
@@ -858,13 +869,14 @@ def plot_transverse_profiles_from_h5(dt: datatree, save: bool = False):
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7, 7), sharex=True)
         plt.subplots_adjust(bottom=0.2, hspace=0.3)
 
-        x0 = offsets_x[0]
-        scatter_x = ax1.scatter(x0, modE_x[0], color='red', s=15, label=r'ERMES samples $(\hat{x})$')
-        scatter_y = ax2.scatter(x0, modE_y[0], color='red', s=15, label=r'ERMES samples $(\hat{y})$')
-        line_fit_x, = ax1.plot(x0, gaussian_fit(x0, *fit_params_x[0]), color='green', lw=2, label='Gaussian fit')
-        line_fit_y, = ax2.plot(x0, gaussian_fit(x0, *fit_params_y[0]), color='green', lw=2, label='Gaussian fit')
-        line_theory_x = (ax1.plot(x0, theory_x[0], '--', color='orange', lw=2, label='SCOTTY')[0] if theory_x is not None else None)
-        line_theory_y = (ax2.plot(x0, theory_y[0], '--', color='orange', lw=2, label='SCOTTY')[0] if theory_y is not None else None)
+        x0 = offsets_x[i0]
+        y0 = offsets_y[i0]
+        scatter_x = ax1.scatter(x0, modE_x[i0], color='red', s=15, label=r'ERMES samples $(\hat{x})$')
+        scatter_y = ax2.scatter(y0, modE_y[i0], color='red', s=15, label=r'ERMES samples $(\hat{y})$')
+        line_fit_x, = ax1.plot(x0, gaussian_fit(x0, *fit_params_x[i0]), color='green', lw=2, label='Gaussian fit')
+        line_fit_y, = ax2.plot(y0, gaussian_fit(y0, *fit_params_y[i0]), color='green', lw=2, label='Gaussian fit')
+        line_theory_x = (ax1.plot(x0, theory_x[i0], '--', color='orange', lw=2, label='SCOTTY')[0] if theory_x is not None else None)
+        line_theory_y = (ax2.plot(y0, theory_y[i0], '--', color='orange', lw=2, label='SCOTTY')[0] if theory_y is not None else None)
 
         for ax, label in zip([ax1, ax2], [r"$\hat{x}$ direction", r"$\hat{y}$ direction"]):
             ax.set_xlim(-global_max_offset, global_max_offset)
@@ -873,30 +885,30 @@ def plot_transverse_profiles_from_h5(dt: datatree, save: bool = False):
             ax.legend()
             ax.grid(True)
         ax2.set_xlabel('Offset from beam center (m)')
-        ax1.set_title(f'Transverse |E| profiles at {distance_along_line[0]:.3f}m along the central ray')
+        ax1.set_title(f'Transverse |E| profiles at {distance_along_line[i0]:.3f}m along the central ray')
 
-        ax_slider = plt.axes([0.2, 0.05, 0.6, 0.03])
-        slider = Slider(ax_slider, '', float(distance_along_line[0]), float(distance_along_line[-1]), valinit=float(distance_along_line[0]))
+        if use_slider:
+            ax_slider = plt.axes([0.2, 0.05, 0.6, 0.03])
+            slider = Slider(ax_slider, '', float(distance_along_line[0]), float(distance_along_line[-1]), valinit=float(distance_along_line[0]))
 
-        def update_3d(val):
-            j = int(np.argmin(np.abs(distance_along_line - slider.val)))
+            def update_3d(val):
+                j = nearest_index(slider.val)
+                x, yx = offsets_x[j], modE_x[j]
+                scatter_x.set_offsets(np.column_stack([x, yx]))
+                line_fit_x.set_data(x, gaussian_fit(x, *fit_params_x[j]))
+                if line_theory_x is not None:
+                    line_theory_x.set_data(x, theory_x[j])
 
-            x, yx = offsets_x[j], modE_x[j]
-            scatter_x.set_offsets(np.column_stack([x, yx]))
-            line_fit_x.set_data(x, gaussian_fit(x, *fit_params_x[j]))
-            if line_theory_x is not None:
-                line_theory_x.set_data(x, theory_x[j])
+                y, yy = offsets_y[j], modE_y[j]
+                scatter_y.set_offsets(np.column_stack([y, yy]))
+                line_fit_y.set_data(y, gaussian_fit(y, *fit_params_y[j]))
+                if line_theory_y is not None:
+                    line_theory_y.set_data(y, theory_y[j])
 
-            y, yy = offsets_y[j], modE_y[j]
-            scatter_y.set_offsets(np.column_stack([y, yy]))
-            line_fit_y.set_data(y, gaussian_fit(y, *fit_params_y[j]))
-            if line_theory_y is not None:
-                line_theory_y.set_data(y, theory_y[j])
+                ax1.set_title(f"Transverse |E| profiles at {distance_along_line[j]:.3f}m along the central ray")
+                fig.canvas.draw_idle()
 
-            ax1.set_title(f"Transverse |E| profiles at {distance_along_line[j]:.3f}m along the central ray")
-            fig.canvas.draw_idle()
-
-        slider.on_changed(update_3d)
+            slider.on_changed(update_3d)
         if save:
             fig.savefig(f"{prefix}_transverse_profiles_3D.png", dpi=250, bbox_inches='tight')
         plt.show()
