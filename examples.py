@@ -113,14 +113,14 @@ def example_get_oblique_plane():
     centroid, LS_plane_normal, u_hat, v_hat = pure_best_fit_plane(beam_xyz)
     
     easy2Dplane_normal = np.cross(k_vec_launch_XYZ_norm, np.array([0,1,0]))
-    plane_normal = easy2Dplane_normal # Change this, it is the plane normal to be used
+    plane_normal = np.array([[-0.01091253,  0.00172837, -0.16710754]])#easy2Dplane_normal # Change this, it is the plane normal to be used
     
     print("Plane Normal: ", plane_normal)
     projected_points = np.array([
         project_point_onto_plane(p, plane_normal, o = o_to_use) for p in points
     ])
     
-    print("Offset: ", offset_point_along_plane_normal(projected_points[0], np.array([-0.06597241, 0, -0.98553661]), grid_resolution))
+    print("Offset: ", offset_point_along_plane_normal(projected_points[0], plane_normal, grid_resolution))
     print("Projected: ", projected_points)
     
     # Create mesh grid for visualizing the plane patch
