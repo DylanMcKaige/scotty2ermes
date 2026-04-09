@@ -308,7 +308,8 @@ def project_point_onto_plane(r: np.array, n: np.array, o: np.array):
     Returns:
         r_proj (array): Projected point
     """
-    return np.array(r - np.dot(r - o, n) * n)
+    n_hat = n / np.linalg.norm(n)
+    return np.array(r - np.dot(r - o, n_hat) * n_hat)
 
 def offset_point_along_plane_normal(point_on_plane, plane_normal, dz):
     """
