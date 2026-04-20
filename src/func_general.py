@@ -1,10 +1,10 @@
 """
 General and generic QOL functions
 
-Refer to main.py for references and notes
+Refer to scotty2ERMES.py for references and notes
 Written by Dylan James Mc Kaige
 Created: 1/4/2026
-Updated: 8/4/2026
+Updated: 20/4/2026
 """
 
 import numpy as np
