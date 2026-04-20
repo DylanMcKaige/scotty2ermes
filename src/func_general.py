@@ -81,7 +81,7 @@ def XYZ_to_RtZ(a: np.array) -> np.array:
     """
     assert len(a) == 3, "This function only supports single arrays of length 3, if you do this on an array of arrays, you gotta stack it"
     
-    b = np.array([a[0], a[2], -a[1]])
+    b = np.array([a[0], -a[2], a[1]])
     return b
 
 def gaussian_fit(x, A, x0, w):
