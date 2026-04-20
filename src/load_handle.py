@@ -293,7 +293,6 @@ def ERMES_to_array(node_to_xyz, result_dict):
         result_dict (dict): Dictionary of results, from ERMES_results_to_node
     """        
     max_node = max(result_dict.keys())
-    print(type(list(result_dict.values())[0]))
     if type(list(result_dict.values())[0]) == float:
         result_array = np.zeros(max_node + 1)
         for i, v in result_dict.items():
@@ -508,7 +507,7 @@ def build_transverse_profiles_and_fits(dt, beam_xyz, modE_xyz, vecS_xyz, modE_li
     if normal_vec is not None:
         for i in iterator:
             g_xyz = ghat_xyz[i]
-            g_rtz = ghat_cartesian[i]
+            g_rtz = XYZ_to_RtZ(g_xyz)
             Psi = Psi_3D_Cartesian.values[i]
 
             # Project beam onto plane perp to n_hat
@@ -569,7 +568,7 @@ def build_transverse_profiles_and_fits(dt, beam_xyz, modE_xyz, vecS_xyz, modE_li
 
             # Theoretical profile
             Psi = Psi_3D_Cartesian.values[i]
-            g_rtz = ghat_cartesian.values[i]
+            g_rtz = ghat_cartesian.values[i]/np.linalg.norm(ghat_cartesian.values[i])
             P_perp = np.eye(3) - np.outer(g_rtz, g_rtz)
             Psi_w = P_perp @ Psi @ P_perp
             w_vecs = np.outer(offsets, hat_vec)
@@ -610,7 +609,7 @@ def build_transverse_profiles_and_fits(dt, beam_xyz, modE_xyz, vecS_xyz, modE_li
 
             # Theoretical profile
             Psi = Psi_3D_Cartesian.values[i]
-            g_rtz = ghat_cartesian.values[i]
+            g_rtz = ghat_cartesian.values[i]/np.linalg.norm(ghat_cartesian.values[i])
             P_perp = np.eye(3) - np.outer(g_rtz, g_rtz)
             Psi_w = P_perp @ Psi @ P_perp
             w_vecs = np.outer(offsets, hat_vec)
@@ -662,57 +661,3 @@ def build_transverse_profiles_and_fits(dt, beam_xyz, modE_xyz, vecS_xyz, modE_li
         np.array(modE_theoretical_profiles_x, dtype=object),
         np.array(modE_theoretical_profiles_y, dtype=object)
     )
-
-# TODO Consider deprecating as it's honestly easier NOT to do this conversion.
-def exact_to_ERMES(reference_data, exact_data: str, tol: float): 
-    """
-    Convert a .npz field map of the exact |E| results to a format that can be processed by the analysis functions.
-
-    Args:
-        reference_data: modE_xyz from a reference full-wave simulation for direct comparison consistency
-        exact_data (str): Path to the exact data file
-        tol (float): Tolerance of the full-wave simulation to match resolution
-        
-    Returns:
-        modE_xyz: modE everywhere
-        rE_xyz: rE everywhere
-    """
-    mask = np.abs(reference_data[:, 2]) < tol
-    slice_pts = reference_data[mask]
-    
-    R = slice_pts[1:, 0]
-    Z = slice_pts[1:, 1]
-
-    # Build uniform grid in R-Z
-    Rmin, Rmax = np.min(R), np.max(R)
-    Zmin, Zmax = np.min(Z), np.max(Z)
-    
-    exact_data = np.load(exact_data)
-    X_grid = exact_data["X_grid"]
-    Y_grid = exact_data["Y_grid"]
-    field_mag_norm = exact_data["field_mag_norm"]
-    field_real_norm = exact_data["field_real_norm"]
-    
-    mask_X = (X_grid >= Rmin) & (X_grid <= Rmax)
-    mask_Y = (Y_grid >= Zmin) & (Y_grid <= Zmax)
-    
-    # Force this into ERMES.res modE_xyz format
-    modE_xyz = XX, YY = np.meshgrid(X_grid[mask_X], Y_grid[mask_Y], indexing='ij')
-    rE_xyz = XX, YY
-    node_x = XX.ravel()
-    node_y = YY.ravel()
-    node_z = np.zeros_like(node_x)
-    
-    node_to_xyz_exact = np.column_stack([node_x, node_y, node_z])
-    field_mag = field_mag_norm[np.ix_(mask_X, mask_Y)]
-    field_real = field_real_norm[np.ix_(mask_X, mask_Y)]
-    
-    modE_array_exact = field_mag.ravel()
-    rE_array_exact = field_real.ravel()
-    modE_xyz = np.hstack(
-        (node_to_xyz_exact, modE_array_exact.reshape(-1,1))
-    )
-    rE_xyz = np.hstack(
-        (node_to_xyz_exact, rE_array_exact.reshape(-1,1))
-    )
-    return modE_xyz, rE_xyz
