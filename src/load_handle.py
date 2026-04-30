@@ -4,14 +4,13 @@ Functions related to loading and handling data, either from SCOTTY or ERMES
 Refer to main.py for references and notes
 Written by Dylan James Mc Kaige
 Created: 1/4/2026
-Updated: 8/4/2026
 """
 import os, datatree
 import numpy as np
 from scotty.analysis import beam_width
-from scotty.fun_general import find_vec_lab_Cartesian, find_Psi_3D_lab_Cartesian
-from func_general import RtZ_to_XYZ, XYZ_to_RtZ, gaussian_fit
-from analysis import calc_Eb_from_scotty
+from scotty.fun_general import find_vec_lab_Cartesian
+from .func_general import RtZ_to_XYZ, XYZ_to_RtZ, gaussian_fit
+from .analysis import calc_Eb_from_scotty
 from tqdm import tqdm
 from scipy.spatial import cKDTree
 from scipy.optimize import curve_fit
@@ -21,13 +20,13 @@ def load_scotty_data(path: str) -> datatree.DataTree:
     Load data from scotty and return the datatree.
     
     Args: 
-        path (str): Path (relative to cwd) to Scotty output file inclusive of the file name
+        path (str): Path (absolute) to Scotty output file inclusive of the file name
     
     Returns:
         dt (DataTree): Scotty output datatree
     """
-    assert os.path.exists(os.getcwd() + path), f"Path '{os.getcwd() + path}' does not exist."
-    dt = datatree.open_datatree(os.getcwd() + path, engine="h5netcdf")
+    assert os.path.exists(path), f"Path '{path}' does not exist."
+    dt = datatree.open_datatree(path, engine="h5netcdf")
     
     return dt
  
@@ -133,14 +132,14 @@ def ERMES_nodes_to_XYZ(msh_file: str, show_progress = True):
     Note that to allow indexing by node, an additional (0,0,0) node is created.
     
     Args:
-        msh_file (str): ERMES msh file
+        msh_file (str): ERMES msh file (absolute)
         
     Returns:
         node_to_xyz (array): Array of node xyz coordinates with nodeID as the 0 axis
     """
     print("Reading ERMES msh file")
     # Node ID as XYZ coords
-    path = os.getcwd() + msh_file
+    path = msh_file
     print("Reading ERMES .msh file (streaming mode)")
 
     reading = False
@@ -192,13 +191,13 @@ def ERMES_results_to_node(res_file: str, result_name: str, show_progress = True)
     Load in the .res file to read each result as nodeID and return the value of result_name at that node. Supports scalar and vector results
     
     Args:
-        res_file (str): ERMES res file
+        res_file (str): ERMES res file (absolute)
         result_name (str): Name of the result, as saved by ERMES, that is wanted
         
     Returns:
         result (dict): Dictionary of result value (scalar or vector) with nodeID as the key
     """
-    path = os.getcwd() + res_file
+    path = res_file
     print(f"Reading ERMES res file for '{result_name}' results")
     
     result = {}
