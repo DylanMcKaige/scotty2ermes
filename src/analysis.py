@@ -4,12 +4,11 @@ Functions related to analysis
 Refer to main.py for references and notes
 Written by Dylan James Mc Kaige
 Created: 1/4/2026
-Updated: 8/4/2026
 """
 import datatree
 import numpy as np
-from func_general import RtZ_to_XYZ, gaussian_fit
-from scotty.fun_general import find_vec_lab_Cartesian, find_Psi_3D_lab_Cartesian
+from .func_general import RtZ_to_XYZ, gaussian_fit
+from scotty.fun_general import find_Psi_3D_lab_Cartesian
 from scipy.optimize import curve_fit
 from scipy.constants import c, pi
 
@@ -21,7 +20,7 @@ def calc_Eb_from_scotty(dt: datatree, E0: float = 1.0, cartesian_scotty: bool = 
     Args:
         dt (datatree): Scotty output file
         E0 (float): For scaling
-        cartesian_scotty (bool): Cartesian Scotty
+        cartesian_scotty (bool): Cartesian Scotty, also implies 2D beam-tracing
         
     Returns:
         Eb_tau (array): |Eb| at all the points along the ray w.r.t tau
@@ -101,8 +100,12 @@ def calc_Eb_from_scotty(dt: datatree, E0: float = 1.0, cartesian_scotty: bool = 
     Psi_w_ant_xyg = mat_RtZ_to_xyg(Psi_w_ant_RtZ)
     
     # 4th root piece (det_piece)
-    det_im_Psi_w = iPsi_xx_tau*iPsi_yy_tau-iPsi_xy_tau**2 # Eqn A.67 from [4]
-    det_im_Psi_w_ant = np.imag(Psi_w_ant_xyg[0,0])*np.imag(Psi_w_ant_xyg[1,1])-np.imag(Psi_w_ant_xyg[0,1])*np.imag(Psi_w_ant_xyg[1,0]) # Eqn A.67 from [4]
+    if cartesian_scotty:
+        det_im_Psi_w = iPsi_yy_tau # Eqn A.67 from [4] but in 2D
+        det_im_Psi_w_ant = np.imag(Psi_w_ant_xyg[1,1]) # Eqn A.67 from [4] but in 2D
+    else:
+        det_im_Psi_w = iPsi_xx_tau*iPsi_yy_tau-iPsi_xy_tau**2 # Eqn A.67 from [4]
+        det_im_Psi_w_ant = np.imag(Psi_w_ant_xyg[0,0])*np.imag(Psi_w_ant_xyg[1,1])-np.imag(Psi_w_ant_xyg[0,1])*np.imag(Psi_w_ant_xyg[1,0]) # Eqn A.67 from [4]
     det_piece = (det_im_Psi_w/det_im_Psi_w_ant)**0.25
     
     # g_piece
@@ -326,22 +329,3 @@ def offset_point_along_plane_normal(point_on_plane, plane_normal, dz):
     n_hat = plane_normal / np.linalg.norm(plane_normal)
     new_point = point_on_plane + dz * n_hat
     return np.array(new_point)
-
-# TODO Consider deprecating this as it is quite non-physical.
-def pure_best_fit_plane(beam_xyz):
-    """
-    This version doesnt care about an anchor k or anchor point. Purely best fit.
-    Args:
-        beam_xyz: Beam coords in ERMES Cartesian
-    Returns:
-        centroid (array): Of the plane
-        n_hat (array): Of the plane
-        u_hat, v_hat (array): Of the plane
-    """
-    centroid = np.mean(beam_xyz, axis=0)
-    X = beam_xyz - centroid
-    _, _, vh = np.linalg.svd(X)
-    n_hat = vh[-1] / np.linalg.norm(vh[-1])
-    u_hat = vh[0] / np.linalg.norm(vh[0])
-    v_hat = vh[1] / np.linalg.norm(vh[1])
-    return centroid, n_hat, u_hat, v_hat
