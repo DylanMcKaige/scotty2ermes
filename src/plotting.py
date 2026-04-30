@@ -2,13 +2,11 @@
 Plotting functions
 
 TODO
-1. Change individual plotting functions to return an ax instead so that the user can easily change the formatting
-2. Standardize what data is LOADED in and what is HARD CODED and etc, there's a lot of overlap right now
+1. Standardize what data is LOADED in and what is HARD CODED and etc, there's a lot of overlap right now
 
 Refer to main.py for references and notes
 Written by Dylan James Mc Kaige
 Created: 1/4/2026
-Updated: 8/4/2026
 """
 import numpy as np
 import datatree
@@ -20,8 +18,8 @@ from matplotlib.colors import Normalize, LinearSegmentedColormap
 from matplotlib import colormaps as cm
 from scotty.analysis import beam_width
 from scotty.plotting import plot_poloidal_crosssection
-from func_general import RtZ_to_XYZ, XYZ_to_RtZ, handle_scotty_launch_angle_sign, gaussian_fit
-from analysis import calc_Eb_from_scotty
+from .func_general import RtZ_to_XYZ, XYZ_to_RtZ, handle_scotty_launch_angle_sign, gaussian_fit
+from .analysis import calc_Eb_from_scotty
 
 def plot_field_map(modE_xyz, dt, tol, grid_resolution, norm_vec, prefix, save, cartesian_scotty):
     """
@@ -132,7 +130,8 @@ def plot_field_map(modE_xyz, dt, tol, grid_resolution, norm_vec, prefix, save, c
     if save:
         plt.tight_layout()
         plt.savefig(f"{prefix}_field_map.png", dpi=200)
-    plt.show()
+        
+    return plt.gca()
 
 def plot_field_map_3D(dt, modE_xyz, norm_vec = None, save=False, prefix="", sample_rate = 0.05):
     """
@@ -216,7 +215,7 @@ def plot_field_map_3D(dt, modE_xyz, norm_vec = None, save=False, prefix="", samp
     if save:
         plt.tight_layout()
         plt.savefig(f"{prefix}_3D_field_map.png", dpi=200)
-    plt.show()
+    return plt.gca()
 
 def plot_modE_vs_tau(dt, modE_list, tau_cutoff, distance_along_beam, prefix, save, cartesian_scotty):
     """
@@ -242,7 +241,7 @@ def plot_modE_vs_tau(dt, modE_list, tau_cutoff, distance_along_beam, prefix, sav
     plt.tight_layout()
     if save:
         plt.savefig(f"{prefix}_modE_vs_tau.png", dpi=200)
-    plt.show()
+    return plt.gca()
 
 def plot_transverse_profiles_2D(
     distance_along_line,
@@ -340,7 +339,7 @@ def plot_transverse_profiles_2D(
     if save:
         plt.savefig(f"{prefix}_transverse_profile.png", dpi=200)
 
-    plt.show()
+    return plt.gca()
 
 def plot_transverse_profiles_3D(
     distance_along_line,
@@ -471,7 +470,7 @@ def plot_transverse_profiles_3D(
         fig.savefig(f"{prefix}_transverse_profiles_3D.png", dpi=250, bbox_inches='tight')
         print(f"Saved {prefix}_transverse_profiles_3D.png")
 
-    plt.show()
+    return plt.gca()
 
 def plot_cross_section(dt, modE_xyz, vecS_xyz, save=False, prefix="", show_progress=True):
     """
@@ -618,7 +617,7 @@ def plot_cross_section(dt, modE_xyz, vecS_xyz, save=False, prefix="", show_progr
     if save:
         fig.savefig(f"{prefix}_transverse_field_slices_3D.png", dpi=200)
 
-    plt.show()
+    return plt.gca()
   
 def plot_2D_widths(dt, distance_along_beam, tau_cutoff, fitted_widths, norm_vec, chi2_list, prefix, save, cartesian_scotty):
     """
@@ -652,7 +651,7 @@ def plot_2D_widths(dt, distance_along_beam, tau_cutoff, fitted_widths, norm_vec,
     plt.tight_layout()
     if save:
         plt.savefig(f"{prefix}_widths_and_chi2.png", dpi=200)
-    plt.show()
+    return plt.gca()
     
 def plot_3D_widths(dt, distance_along_beam, tau_cutoff, fitted_widths_x, fitted_widths_y, prefix, save):
     """
@@ -683,7 +682,7 @@ def plot_3D_widths(dt, distance_along_beam, tau_cutoff, fitted_widths_x, fitted_
     plt.tight_layout()
     if save:
         plt.savefig(f"{prefix}_principle_widths.png", dpi=200)
-    plt.show()
+    return plt.gca()
 
 def plot_3D_width_var_covar(
     fit_params_x, 
@@ -746,7 +745,7 @@ def plot_3D_width_var_covar(
         plt.savefig(filename, dpi=200, bbox_inches='tight')
         print(f"Saved 3D width variance/covariance plot to {filename}")
 
-    plt.show()
+    return plt.gca()
 
 #TODO 
 # FIX THIS (Or just deprecate as it's not needed nor too informative near the cutoff. 
@@ -848,7 +847,7 @@ def plot_transverse_profiles_from_h5(dt: datatree, save: bool = False, pos: floa
             slider.on_changed(update_2d)
         if save:
             plt.savefig(f"{prefix}_transverse_profile.png", dpi=200)
-        plt.show()
+        return ax
 
     # 3D
     elif "offsets_xhat_flat" in dt:
@@ -911,7 +910,7 @@ def plot_transverse_profiles_from_h5(dt: datatree, save: bool = False, pos: floa
             slider.on_changed(update_3d)
         if save:
             fig.savefig(f"{prefix}_transverse_profiles_3D.png", dpi=250, bbox_inches='tight')
-        plt.show()
+        return ax1, ax2
 
     else:
         raise ValueError("Unrecognised .h5 format: expected 'offsets_transverse_flat' or 'offsets_xhat_flat'.")
