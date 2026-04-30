@@ -45,13 +45,13 @@ import numpy as np
 import xarray as xr
 from scipy.constants import pi, c
 from math import sin, cos, tan, sqrt, fabs
-from func_general import handle_scotty_launch_angle_sign, RtZ_to_XYZ
-from load_handle import get_limits_from_scotty, scotty_pol_to_ERMES
+from .func_general import handle_scotty_launch_angle_sign, RtZ_to_XYZ
+from .load_handle import get_limits_from_scotty, scotty_pol_to_ERMES
 from matplotlib import pyplot as plt
 from scotty.analysis import beam_width
 from scotty.plotting import plot_poloidal_crosssection, plot_toroidal_beam_path
-from load_handle import prepare_core_fields, sample_fields_along_beam, build_transverse_profiles_and_fits
-from plotting import plot_field_map, plot_field_map_3D, plot_2D_widths, plot_3D_widths, plot_3D_width_var_covar, plot_cross_section, plot_modE_vs_tau, plot_flux, plot_transverse_profiles_2D, plot_transverse_profiles_3D
+from .load_handle import prepare_core_fields, sample_fields_along_beam, build_transverse_profiles_and_fits
+from .plotting import plot_field_map, plot_field_map_3D, plot_2D_widths, plot_3D_widths, plot_3D_width_var_covar, plot_cross_section, plot_modE_vs_tau, plot_flux, plot_transverse_profiles_2D, plot_transverse_profiles_3D
 
 def get_ERMES_parameters(
     dt: datatree.DataTree,
@@ -641,12 +641,11 @@ def ERMES_results_to_plots(
 
     ds.to_netcdf(out_h5, engine="h5netcdf")
     print(f"Saved analysis to: {out_h5}")
-    
     # Plot
     # TODO Rename the variables to be standardized...
     if "field_map" in plot_blocks:
         if is2D: # Check if 2D. Essentially only plot this if we're doing a 2D plot
-            plot_field_map(
+            ax = plot_field_map(
                 modE_xyz=modE_xyz,
                 dt=dt,
                 tol=tol,
@@ -656,11 +655,12 @@ def ERMES_results_to_plots(
                 save=save,
                 cartesian_scotty=cartesian_scotty,
             )
+            plt.show()
         else:
             pass
 
     if "3D field_map" in plot_blocks:
-        plot_field_map_3D(
+        ax = plot_field_map_3D(
             dt=dt,
             modE_xyz= modE_xyz,
             norm_vec = normal_vector if is2D else None,
@@ -668,9 +668,10 @@ def ERMES_results_to_plots(
             save=save,
             #sample_rate=0.10
         )
+        plt.show()
 
     if "modE_vs_tau" in plot_blocks:
-        plot_modE_vs_tau(
+        ax = plot_modE_vs_tau(
             dt=dt,
             modE_list=modE_list,
             tau_cutoff=tau_cutoff,
@@ -679,10 +680,11 @@ def ERMES_results_to_plots(
             save=save,
             cartesian_scotty=cartesian_scotty
         )
+        plt.show()
 
     if "transverse_profile" in plot_blocks:
         if is2D:
-            plot_transverse_profiles_2D(
+            ax = plot_transverse_profiles_2D(
                 distance_along_beam,
                 offsets_per_tau, 
                 modE_profiles, 
@@ -691,8 +693,9 @@ def ERMES_results_to_plots(
                 prefix=prefix,
                 save=save
             )
+            plt.show()
         else:
-            plot_transverse_profiles_3D(
+            ax = plot_transverse_profiles_3D(
                 distance_along_beam,
                 offsets_per_tau_x, 
                 offsets_per_tau_y,
@@ -703,10 +706,11 @@ def ERMES_results_to_plots(
                 prefix=prefix,
                 save=save
             )
+            plt.show()
 
     if "widths" in plot_blocks:
         if is2D:
-            plot_2D_widths(
+            ax = plot_2D_widths(
                 dt=dt,
                 distance_along_beam=distance_along_beam,
                 tau_cutoff=tau_cutoff,
@@ -717,8 +721,9 @@ def ERMES_results_to_plots(
                 save=save,
                 cartesian_scotty=cartesian_scotty
             )
+            plt.show()
         else: # Plot 3D principle widths and error of fitting
-            plot_3D_widths(
+            ax = plot_3D_widths(
                 dt=dt,
                 distance_along_beam=distance_along_beam,
                 tau_cutoff=tau_cutoff,
@@ -727,22 +732,25 @@ def ERMES_results_to_plots(
                 prefix=prefix,
                 save=save
             )
-            plot_3D_width_var_covar(
+            plt.show()
+            ax = plot_3D_width_var_covar(
                 fit_params_x,
                 fit_params_y,
                 distance_along_beam,
                 prefix,
                 save
             )
+            plt.show()
 
     if "cross-section" in plot_blocks:
-        plot_cross_section(
+        ax = plot_cross_section(
             dt=dt,
             modE_xyz=modE_xyz,
             vecS_xyz=vecS_xyz,
             save=save,
             prefix=prefix
         )
+        plt.show()
     
     
     #TODO Deprecate?
