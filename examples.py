@@ -4,14 +4,13 @@ Below are 5 examples of how to use scotty2ERMES and its functions
 Refer to main.py for references and notes
 Written by Dylan James Mc Kaige
 Created: 1/4/2026
-Updated: 8/4/2026
 """
 import os, datatree
 from src.scotty2ERMES import get_ERMES_parameters, ERMES_results_to_plots
-from load_handle import load_scotty_data, ERMES_nodes_to_XYZ, ERMES_to_array, ERMES_results_to_node
-from analysis import calc_Eb_from_scotty, pure_best_fit_plane, project_point_onto_plane, offset_point_along_plane_normal
-from plotting import plot_3D_widths
-from func_general import handle_scotty_launch_angle_sign, RtZ_to_XYZ
+from src.load_handle import load_scotty_data, ERMES_nodes_to_XYZ, ERMES_to_array, ERMES_results_to_node
+from src.analysis import calc_Eb_from_scotty, pure_best_fit_plane, project_point_onto_plane, offset_point_along_plane_normal
+from src.plotting import plot_3D_widths
+from src.func_general import handle_scotty_launch_angle_sign, RtZ_to_XYZ
 from scipy.interpolate import griddata
 from scipy.spatial import KDTree
 from scipy.constants import pi
